@@ -1,2 +1,2 @@
-# go-matfile
-Go library for reading v5 MAT-Files
+# matfile
+Go library for decoding and encoding v5 MAT-File formatted data.
