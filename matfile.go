@@ -5,27 +5,49 @@
 // Package matfile implements the encoding and decoding of v5 MAT-File data.
 package matfile
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+	"errors"
+	"io"
+)
 
-// VarReader represents a single header and a sequence of decodable variables
-type VarReader interface {
-	Header() (Header, error)
-	PeekInfo() (VarInfo, error)
-	Read() (Var, error)
-	Next() error
+// VarReader represents a file: a single header followed by
+// a sequence of decodable data elements
+type VarReader struct {
+	Header
+	decoder
+}
+
+// Header contains descriptive text, a version, and a byte-order indicator
+type Header struct {
+	Description     [116]byte // descriptive text
+	Offset          int64     // offset to subsystem data
+	Version         int16     // version (0x0100)
+	EndianIndicator [2]byte   // indicates byte order
+}
+
+// decoder is able to decode data elements in sequence
+type decoder struct {
+	binary.ByteOrder
+	r      io.ReaderAt
+	offset int64
+}
+
+func (v *VarReader) PeekInfo() (*VarInfo, error) {
+	return nil, errors.New("PeekInfo not implemented")
+}
+
+func (v *VarReader) Read() (*Var, error) {
+	return nil, errors.New("Read not implemented")
+}
+
+func (v *VarReader) Next() error {
+	return errors.New("Next not implemented")
 }
 
 // VarWriter encodes variables sequentially
 type VarWriter interface {
 	Write(Var)
-}
-
-// Header contains descriptive text, a version, and a byte-order indicator
-type Header struct {
-	Description [116]byte
-	Offset int64
-	Version int16
-	binary.ByteOrder
 }
 
 // Var is the basic unit of data decoded from a File
