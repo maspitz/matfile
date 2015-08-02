@@ -75,3 +75,32 @@ const (
 	ClassInt64  ArrayClass = 14
 	ClassUint64 ArrayClass = 15
 )
+
+type dataElement struct {
+	dataType
+	data []byte
+	binary.ByteOrder
+}
+
+// dataType specifies the type of data contained in a dataElement.
+type dataType uint8
+
+// The following numeric values correspond to the
+// MAT-File specification.
+const (
+	miINT8       dataType = 1
+	miUINT8      dataType = 2
+	miINT16      dataType = 3
+	miUINT16     dataType = 4
+	miINT32      dataType = 5
+	miUINT32     dataType = 6
+	miSINGLE     dataType = 7
+	miDOUBLE     dataType = 9
+	miINT64      dataType = 12
+	miUINT64     dataType = 13
+	miMATRIX     dataType = 14
+	miCOMPRESSED dataType = 15
+	miUTF8       dataType = 16
+	miUTF16      dataType = 17
+	miUTF32      dataType = 18
+)
