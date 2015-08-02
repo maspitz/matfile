@@ -9,15 +9,15 @@ import "encoding/binary"
 
 // VarReader represents a single header and a sequence of decodable variables
 type VarReader interface {
-	GetHeader() (Header, error)
-	GetVarInfo() (VarInfo, error)
-	GetVar() (Var, error)
+	Header() (Header, error)
+	PeekInfo() (VarInfo, error)
+	Read() (Var, error)
 	Next() error
 }
 
 // VarWriter encodes variables sequentially
 type VarWriter interface {
-	PutVar(Var)
+	Write(Var)
 }
 
 // Header contains descriptive text, a version, and a byte-order indicator
