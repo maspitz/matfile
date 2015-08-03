@@ -26,11 +26,42 @@ type Header struct {
 	EndianIndicator [2]byte   // indicates byte order
 }
 
+// NOTES ON INTERACTION WITH UNDERLYING READER
+// In terms of OS file reads, what we want is something like:
+// read file header
+// read element tag
+//   record element type
+//   calculate & record offset to next element
+// if tag is miCOMPRESSED,
+//   set up a decompressing reader
+//   and go ahead and read from that (should obtain miMATRIX)
+// else if tag is miMATRIX,
+//   [if we want to read the whole data element from file at once]
+//     read all data into a []byte
+//     decode sub - data elements from slices.  calculate offsets.
+//   [if we want to read array info only]
+//     read and decode sufficient sub - data elements using a SectionReader.
+
+// Now, a cell array may itself contain miMATRIX data.
+// If we expect to handle this using an underlying []byte instead of
+// a SectionReader, then we need to have two different methods
+// to decode data elements of type miMATRIX.
+// This is needless duplication of effort.  We could wrap the
+// []byte in a Reader but that defeats the purpose of having a lighter-weight
+// data source for dataelement decoding.  So...  should use only
+// SectionReaders I would say.  Assuming SectionReader is what I think
+// it is.
+
 // decoder is able to decode data elements in sequence
 type decoder struct {
 	binary.ByteOrder
 	r      io.ReaderAt
-	offset int64
+}
+
+func (d *decoder) readTag() (tag, error) {
+}
+
+func (d *decoder) readData() (dataElement, error) {
 }
 
 func (v *VarReader) PeekInfo() (*VarInfo, error) {
