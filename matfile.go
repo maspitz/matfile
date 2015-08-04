@@ -7,8 +7,8 @@ package matfile
 
 import (
 	"encoding/binary"
-	"errors"
 	"io"
+	"io/ioutil"
 )
 
 // VarReader represents a file: a single header followed by
@@ -55,34 +55,60 @@ type Header struct {
 // decoder is able to decode data elements in sequence
 type decoder struct {
 	binary.ByteOrder
-	r      io.ReaderAt
+	r io.ReaderAt
 }
 
 type tag struct {
 	dataType
-	nbytes int64
+	nBytes      uint32
+	smallFormat bool
 }
 
-func (d *decoder) readTag() (tag, error) {
-	t := tag{}
-	return t, errors.New("readTag not implemented")
+// decodeTag assumes len(buf) >= 8
+func decodeTag(buf []byte, bo binary.ByteOrder) tag {
+	var t tag
+	smallTag := bo.Uint32(buf[:])
+	t.dataType = dataType(smallTag)
+	t.smallFormat = (smallTag >> 16) != 0
+	if t.smallFormat == true {
+		t.nBytes = uint32(smallTag >> 16)
+	} else {
+		t.nBytes = bo.Uint32(buf[4:])
+	}
+	return t
 }
 
-func (d *decoder) readData() (dataElement, error) {
-	de := dataElement{}
-	return de, errors.New("readData not implemented")
+// readFullElement reads an entire data element and advances
+// the reader to the beginning of the next data element.
+func readFullElement(r io.Reader, bo binary.ByteOrder) (dataElement, error) {
+	var de dataElement
+	var tagbuf [8]byte
+	_, err := io.ReadFull(r, tagbuf[:])
+	if err != nil {
+		return de, err
+	}
+	de.tag = decodeTag(tagbuf[:], bo)
+	de.data = make([]byte, de.tag.nBytes)
+	if de.tag.smallFormat == true {
+		copy(de.data, tagbuf[4:])
+	} else {
+		_, err = io.ReadFull(r, de.data)
+		if err != nil {
+			return de, err
+		}
+
+		if de.tag.dataType != miCOMPRESSED {
+			// padding equivalent to (8 - (length % 8)) % 8
+			padding := (8 - (de.tag.nBytes & 7)) & 7
+			// advance reader past padding to next element (ignore errors)
+			_, _ = io.CopyN(ioutil.Discard, r, int64(padding))
+		}
+	}
+	return de, nil
 }
 
-func (v *VarReader) PeekInfo() (*VarInfo, error) {
-	return nil, errors.New("PeekInfo not implemented")
-}
-
-func (v *VarReader) Read() (*Var, error) {
-	return nil, errors.New("Read not implemented")
-}
-
-func (v *VarReader) Next() error {
-	return errors.New("Next not implemented")
+func decodeElement(de dataElement) Var {
+	return Var{}
 }
 
 // VarWriter encodes variables sequentially
@@ -139,9 +165,8 @@ const (
 )
 
 type dataElement struct {
-	dataType
+	tag
 	data []byte
-	binary.ByteOrder
 }
 
 // dataType specifies the type of data contained in a dataElement.
