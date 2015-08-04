@@ -58,10 +58,19 @@ type decoder struct {
 	r      io.ReaderAt
 }
 
+type tag struct {
+	dataType
+	nbytes int64
+}
+
 func (d *decoder) readTag() (tag, error) {
+	t := tag{}
+	return t, errors.New("readTag not implemented")
 }
 
 func (d *decoder) readData() (dataElement, error) {
+	de := dataElement{}
+	return de, errors.New("readData not implemented")
 }
 
 func (v *VarReader) PeekInfo() (*VarInfo, error) {
