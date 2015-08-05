@@ -6,6 +6,8 @@
 package matfile
 
 import (
+	"bytes"
+	"compress/zlib"
 	"encoding/binary"
 	"io"
 	"io/ioutil"
@@ -109,91 +111,105 @@ func readFullElement(r io.Reader, bo binary.ByteOrder) (dataElement, error) {
 	return de, nil
 }
 
-// TODO consider signalling error if data length is not divisible
+// TODO consider returning error if data length is not divisible
 // TODO furthermore consider accepting dataType and []byte as arguments
 //      instead of dataElement.
-func decodeElement(de dataElement, bo binary.ByteOrder) interface{} {
+func decodeElement(de dataElement, bo binary.ByteOrder) (interface{}, error) {
 	switch de.dataType {
 	case miINT8:
 		val := make([]int8, de.nBytes)
 		for i, x := range de.data {
 			val[i] = int8(x)
 		}
-		return val
+		return val, nil
 	case miUINT8:
 		val := make([]uint8, de.nBytes)
 		copy(val, de.data)
-		return val
+		return val, nil
 	case miINT16:
 		val := make([]int16, de.nBytes/2)
 		for i := range val {
 			val[i] = int16(bo.Uint16(de.data[2*i:]))
 		}
-		return val
+		return val, nil
 	case miUINT16:
 		val := make([]uint16, de.nBytes/2)
 		for i := range val {
 			val[i] = bo.Uint16(de.data[2*i:])
 		}
-		return val
+		return val, nil
 	case miINT32:
 		val := make([]int32, de.nBytes/4)
 		for i := range val {
 			val[i] = int32(bo.Uint32(de.data[4*i:]))
 		}
-		return val
+		return val, nil
 	case miUINT32:
 		val := make([]uint32, de.nBytes/4)
 		for i := range val {
 			val[i] = bo.Uint32(de.data[4*i:])
 		}
-		return val
+		return val, nil
 	case miSINGLE:
 		val := make([]float32, de.nBytes/4)
 		for i := range val {
 			val[i] = math.Float32frombits(bo.Uint32(de.data[4*i:]))
 		}
-		return val
+		return val, nil
 	case miDOUBLE:
 		val := make([]float64, de.nBytes/8)
 		for i := range val {
 			val[i] = math.Float64frombits(bo.Uint64(de.data[8*i:]))
 		}
-		return val
+		return val, nil
 	case miINT64:
 		val := make([]int64, de.nBytes/8)
 		for i := range val {
 			val[i] = int64(bo.Uint64(de.data[8*i:]))
 		}
-		return val
+		return val, nil
 	case miUINT64:
 		val := make([]uint64, de.nBytes/8)
 		for i := range val {
 			val[i] = bo.Uint64(de.data[8*i:])
 		}
-		return val
+		return val, nil
 	case miMATRIX:
-		return nil
+		panic("can't decode miMATRIX yet")
+		return nil, nil
 		//return decodeFullArray(de)
 	case miCOMPRESSED:
-		return nil
-		//return decodeFullCompressed(de)
+		zde, err := decompressElement(de, bo)
+		if err != nil {
+			return nil, err
+		}
+		return decodeElement(zde, bo)
 	case miUTF8:
-		return string(de.data)
+		return string(de.data), nil
 	case miUTF16:
 		val := make([]uint16, de.nBytes/2)
 		for i := range val {
 			val[i] = bo.Uint16(de.data[2*i:])
 		}
-		return string(utf16.Decode(val))
+		return string(utf16.Decode(val)), nil
 	case miUTF32:
 		runes := make([]rune, de.nBytes/4)
 		for i := range runes {
 			runes[i] = rune(bo.Uint32(de.data[4*i:]))
 		}
-		return string(runes)
+		return string(runes), nil
 	}
-	return nil
+	return nil, nil
+}
+
+func decompressElement(in dataElement, bo binary.ByteOrder) (dataElement, error) {
+	b := bytes.NewBuffer(in.data)
+	r, err := zlib.NewReader(b)
+	if err != nil {
+		return dataElement{}, err
+	}
+	defer r.Close()
+	return readFullElement(r, bo)
 }
 
 // VarWriter encodes variables sequentially
