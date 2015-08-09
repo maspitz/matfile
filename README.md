@@ -4,3 +4,7 @@
 [![License GPLv2](https://img.shields.io/github/license/maspitz/matfile.svg)](https://github.com/maspitz/matfile/blob/master/LICENSE)
 
 Go library for decoding and encoding v5 MAT-File formatted data.
+
+## Current Status
+
+It is not functional yet.  This is a work in progress.
