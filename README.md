@@ -7,4 +7,4 @@ Go library for decoding and encoding v5 MAT-File formatted data.
 
 ## Current Status
 
-It is not functional yet.  This is a work in progress.
+This is a work in progress.  It cannot read MAT-files yet.
